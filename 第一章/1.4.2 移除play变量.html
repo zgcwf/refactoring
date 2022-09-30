@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      /**
+       *1. 将得到表演剧目语句抽离为函数  const play = plays[perf.playID]  => const play = getPerformancePlay(perf)
+       *2. 使用内联变量方法消除顶层作用域的play变量  {
+        const play = getPerformancePlay(perf)
+        let thisMount = getPerformanceAmount(perf,play)
+        ...
+       } => {
+         let thisMount = getPerformanceAmount(perf,getPerformancePlay(perf))
+         ...
+       }
+       *3. 改变函数声明，移除play参数 {
+        let thisMount = getPerformanceAmount(perf,getPerformancePlay(perf))
+
+        function getPerformanceAmount(perf,play) {
+            switch (play.type)
+            ...
+        }
+
+       } => {
+        let thisMount = getPerformanceAmount(perf)
+
+         function getPerformanceAmount(perf) {
+            switch (getPerformancePlay(perf).type)
+            ...
+        }
+
+       }
+       *4. 使用内联变量消除顶层作用域 thisMount 变量 => {
+        let thisMount = getPerformanceAmount(perf)
+        ...
+         totalAmount += thisAmount;
+       } =>{
+         ...
+         totalAmount += getPerformanceAmount(perf);
+       }
+       */
+
+      // plays  剧目数据    tragedy 悲剧  comedy 喜剧
+      const plays = {
+        hamlet: { name: "Hamlet", type: "tragedy" },
+        "as-like": { name: "As you like it", type: "comedy" },
+        othello: { name: "Othello", type: "tragedy" },
+      };
+      // invoices 发票数据  performances 表演
+      const invoices = {
+        customer: "BigCo",
+        performances: [
+          {
+            playID: "hamlet",
+            audience: 55,
+          },
+          {
+            playID: "as-like",
+            audience: 35,
+          },
+          {
+            playID: "othello",
+            audience: 40,
+          },
+        ],
+      };
+
+      // statement 声明
+      statement(invoices, plays);
+
+      function statement(invoice, plays) {
+        let totalAmount = 0;
+        let volumeCredits = 0; // 观众量积分
+        let result = `Statement for ${invoice.customer}\n`;
+
+        // Intl.NumberFormat数字格式化应用
+        // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
+        const format = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+        }).format;
+
+        for (let perf of invoice.performances) {
+          //   add volume credits
+          volumeCredits += Math.max(perf.audience - 30, 0);
+
+          //   add extra credit for every ten comedy attendess
+
+          if ("comedy" === getPerformancePlay(perf).type)
+            volumeCredits += Math.floor(perf.audience / 5);
+
+          // print line for this order
+          result += `${getPerformancePlay(perf).name}: ${format(
+            getPerformanceAmount(perf) / 100
+          )} (${perf.audience} seats) \n`;
+
+          totalAmount += getPerformanceAmount(perf);
+        }
+
+        result += `Amount owed is ${format(totalAmount / 100)} \n`;
+        result += `You earned ${volumeCredits} credits \n`;
+        console.log(result);
+        return result;
+      }
+
+      function getPerformancePlay(perf) {
+        return plays[perf.playID];
+      }
+
+      function getPerformanceAmount(perf) {
+        let result = 0;
+        switch (getPerformancePlay(perf).type) {
+          case "tragedy":
+            result = 40000;
+            if (perf.audience > 30) {
+              result += 1000 * (perf.audience - 30);
+            }
+            break;
+          case "comedy":
+            result = 30000;
+            if (perf.audience > 20) {
+              result += 10000 + 500 * (perf.audience - 20);
+            }
+            result += 300 * perf.audience;
+            break;
+          default:
+            throw new Error(`unknon type : ${getPerformancePlay(perf).type}`);
+        }
+
+        return result;
+      }
+    </script>
+  </body>
+</html>
