@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // plays  剧目数据    tragedy 悲剧  comedy 喜剧
+      const plays = {
+        hamlet: { name: "Hamlet", type: "tragedy" },
+        "as-like": { name: "As you like it", type: "comedy" },
+        othello: { name: "Othello", type: "tragedy" },
+      };
+      // invoices 发票数据  performances 表演
+      const invoices = {
+        customer: "BigCo",
+        performances: [
+          {
+            playID: "hamlet",
+            audience: 55,
+          },
+          {
+            playID: "as-like",
+            audience: 35,
+          },
+          {
+            playID: "othello",
+            audience: 40,
+          },
+        ],
+      };
+
+      // statement 声明
+      statement(invoices, plays);
+
+      function createStatementData(invoice, plays) {
+        const statementData = {};
+        statementData.customer = invoice.customer;
+        statementData.performances = invoice.performances.map((performance) =>
+          enrichPerformance(performance)
+        );
+        statementData.totalAmount = totalAmount(statementData);
+        statementData.totalVolumeCredits = totalVolumeCredits(statementData);
+        return statementData;
+
+        function enrichPerformance(performance) {
+          const result = Object.assign({}, performance);
+          result.play = getPerformancePlay(result);
+          result.amount = getPerformanceAmount(result);
+          result.volumeCredits = getVolumeCredits(result);
+          console.log(222, result);
+          return result;
+        }
+
+        function getPerformancePlay(perf) {
+          return plays[perf.playID];
+        }
+
+        function getPerformanceAmount(perf) {
+          let result = 0;
+          switch (perf.play.type) {
+            case "tragedy":
+              result = 40000;
+              if (perf.audience > 30) {
+                result += 1000 * (perf.audience - 30);
+              }
+              break;
+            case "comedy":
+              result = 30000;
+              if (perf.audience > 20) {
+                result += 10000 + 500 * (perf.audience - 20);
+              }
+              result += 300 * perf.audience;
+              break;
+            default:
+              throw new Error(`unknon type : ${perf.play.type}`);
+          }
+
+          return result;
+        }
+
+        function getVolumeCredits(perf) {
+          let result = 0; // 观众量积分
+
+          //   add volume credits
+          result += Math.max(perf.audience - 30, 0);
+
+          //   add extra credit for every ten comedy attendess
+
+          if ("comedy" === perf.play.type)
+            result += Math.floor(perf.audience / 5);
+
+          return result;
+        }
+
+        function totalAmount(data) {
+          let result = 0;
+          for (let perf of data.performances) {
+            result += perf.amount;
+          }
+          return result;
+        }
+
+        function totalVolumeCredits(data) {
+          let result = 0;
+
+          for (let perf of data.performances) {
+            result += perf.volumeCredits;
+          }
+          return result;
+        }
+      }
+
+      function statement(invoice, plays) {
+        return renderPlainText(createStatementData(invoice, plays));
+      }
+
+      function renderPlainText(data) {
+        let result = `Statement for ${data.customer}\n`;
+
+        for (let perf of data.performances) {
+          // print line for this order
+          result += `${perf.play.name}: ${formatUsd(perf.amount)} (${
+            perf.audience
+          } seats) \n`;
+        }
+
+        result += `Amount owed is ${formatUsd(data.totalAmount)} \n`;
+        result += `You earned ${data.totalVolumeCredits} credits \n`;
+
+        console.log(result);
+        return result;
+      }
+
+      function formatUsd(number) {
+        // Intl.NumberFormat数字格式化应用
+        // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+        }).format(number / 100);
+      }
+    </script>
+  </body>
+</html>
